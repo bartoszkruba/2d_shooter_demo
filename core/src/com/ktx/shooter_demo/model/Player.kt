@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.Circle
 import com.ktx.shooter_demo.settings.WINDOW_HEIGHT
 import com.ktx.shooter_demo.settings.WINDOW_WIDTH
 
-class Player(textureRegion: TextureRegion, x: Float, y: Float, var facingDirection: Float = 0f) {
+class Player(textureRegion: TextureRegion, var x: Float, y: Float, var facingDirection: Float = 0f) {
     val sprite: Sprite = Sprite(textureRegion)
     val bounds = Circle()
 
