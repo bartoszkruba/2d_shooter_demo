@@ -7,8 +7,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.math.MathUtils
-import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.math.*
 import com.badlogic.gdx.utils.Array
 import com.ktx.shooter_demo.Game
 import com.ktx.shooter_demo.assets.TextureAtlasAssets
@@ -20,7 +19,7 @@ import com.ktx.shooter_demo.settings.WINDOW_WIDTH
 import ktx.app.KtxScreen
 import ktx.collections.iterate
 import ktx.graphics.use
-import com.badlogic.gdx.math.Vector3
+import ktx.assets.pool
 
 
 class GameScreen(
@@ -36,6 +35,11 @@ class GameScreen(
     val mousePosition = Vector2()
 
     val projectiles = Array<Projectile>()
+    val projectilePool = pool {
+        val sprite = Sprite(projectile)
+        sprite.setSize(projectile.width.toFloat(), projectile.height.toFloat())
+        Projectile(sprite, 0f, 0f)
+    }
 
     override fun render(delta: Float) {
 
@@ -47,11 +51,7 @@ class GameScreen(
         val originX = player.sprite.originX + player.sprite.x
         val originY = player.sprite.originY + player.sprite.y
         val mouse = getMousePosInGameWorld()
-        val mouseY = mouse.y
-        val mouseX = mouse.x
-        val angle = MathUtils.atan2(mouseY - originY, mouseX - originX) * MathUtils.radDeg
-
-
+        val angle = MathUtils.atan2(mouse.y - originY, mouse.x - originX) * MathUtils.radDeg
 
         player.apply {
             facingDirection = angle
@@ -60,10 +60,8 @@ class GameScreen(
             sprite.setPosition(x - sprite.width / 2f, y - sprite.height / 2f)
         }
         if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            println("origin: $originX, $originY")
-            println("mouse: $mouseX, $mouseY")
-            println("angle: $angle")
-            spawnProjectile(MathUtils.cosDeg(angle) * 200, MathUtils.sinDeg(angle) * 200)
+            spawnProjectile(MathUtils.cosDeg(angle) * 200, MathUtils.sinDeg(angle) * 200,
+                    player.bounds.x, player.bounds.y)
         }
 
         batch.use {
@@ -74,7 +72,12 @@ class GameScreen(
                 projectile.sprite.apply {
                     setPosition(projectile.bounds.x - width / 2f, projectile.bounds.y - height / 2f)
                 }
-                projectile.sprite.draw(it)
+                val screen = Rectangle(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT)
+                if (Intersector.overlaps(projectile.bounds, screen)) projectile.sprite.draw(it)
+                else {
+                    iterator.remove()
+                    projectilePool.free(projectile)
+                }
             }
         }
     }
@@ -83,14 +86,11 @@ class GameScreen(
         return camera.unproject(Vector3(Gdx.input.x.toFloat(), Gdx.input.y.toFloat(), 0f))
     }
 
-    fun spawnProjectile(xSpeed: Float, ySpeed: Float) {
-        val sprite = Sprite(projectile)
-        sprite.setSize(projectile.width.toFloat(), projectile.height.toFloat())
-
-        val projectile = Projectile(sprite, WINDOW_WIDTH / 2f, WINDOW_HEIGHT / 2f)
-        projectile.speed.set(xSpeed, ySpeed)
-
-        projectiles.add(projectile)
+    fun spawnProjectile(xSpeed: Float, ySpeed: Float, xPosition: Float, yPosition: Float) {
+        projectiles.add(projectilePool.obtain().apply {
+            bounds.setPosition(xPosition, yPosition)
+            speed.set(xSpeed, ySpeed)
+        })
     }
 
     override fun resize(width: Int, height: Int) {
