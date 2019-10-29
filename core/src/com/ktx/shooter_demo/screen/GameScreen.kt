@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Array
 import com.ktx.shooter_demo.Game
 import com.ktx.shooter_demo.assets.TextureAtlasAssets
 import com.ktx.shooter_demo.assets.get
+import com.ktx.shooter_demo.model.Pistol
 import com.ktx.shooter_demo.model.Player
 import com.ktx.shooter_demo.model.Projectile
 import com.ktx.shooter_demo.settings.WINDOW_HEIGHT
@@ -30,14 +31,14 @@ class GameScreen(
 
     val playerRegion = assets[TextureAtlasAssets.Game].findRegion("player")
 
-    val player = Player(playerRegion, WINDOW_WIDTH / 2f, WINDOW_HEIGHT / 2f)
+    val player = Player(playerRegion, WINDOW_WIDTH / 2f, WINDOW_HEIGHT / 2f, 0f, Pistol())
     val projectile = Texture(Gdx.files.internal("images/projectile.png"))
     val mousePosition = Vector2()
 
     val projectiles = Array<Projectile>()
     val projectilePool = pool {
         val sprite = Sprite(projectile)
-        sprite.setSize(projectile.width.toFloat(), projectile.height.toFloat())
+        sprite.setSize(projectile.width.toFloat() / 2f, projectile.height.toFloat() / 2f)
         Projectile(sprite, 0f, 0f)
     }
 
@@ -59,9 +60,11 @@ class GameScreen(
             sprite.apply { setOrigin(this.width / 2f, this.height / 2f) }
             sprite.setPosition(x - sprite.width / 2f, y - sprite.height / 2f)
         }
-        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            spawnProjectile(MathUtils.cosDeg(angle) * 200, MathUtils.sinDeg(angle) * 200,
+        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT) && player.canShoot()) {
+            player.fire()
+            spawnProjectile(MathUtils.cosDeg(angle) * 500, MathUtils.sinDeg(angle) * 500,
                     player.bounds.x, player.bounds.y)
+
         }
 
         batch.use {
